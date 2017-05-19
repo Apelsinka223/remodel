@@ -13,7 +13,11 @@ defmodule Remodel.Formatter.MapFormatter do
   defp format_resource(resource, serializer, options) when is_map(resource) do
     Enum.reduce(serializer.__attributes, %{}, fn(attr, results) ->
       if !attr.if || evaluate_conditional(resource, serializer, options, attr) do
-        Map.put(results, attr.as || attr.attribute, apply(serializer, attr.attribute, [resource, options[:scope]]))
+        Map.put(
+          results,
+          evaluate_alias(resource, serializer, attr) || attr.as || attr.attribute,
+          apply(serializer, attr.attribute, [resource, options[:scope]])
+        )
       else
         results
       end
@@ -22,6 +26,12 @@ defmodule Remodel.Formatter.MapFormatter do
 
   defp evaluate_conditional(resource, serializer, options, attr),
     do: apply(serializer, attr.if, [resource, options[:scope]])
+
+  defp evaluate_alias(resource, serializer, attr) do
+    if attr.as && is_atom(attr.as) && Keyword.has_key?(serializer.__info__(:functions), attr.as) do
+      apply(serializer, attr.as, [resource])
+    end
+  end
 
   defp put_meta(results, meta) when is_map(meta),
     do: Map.put(results, "meta", meta)

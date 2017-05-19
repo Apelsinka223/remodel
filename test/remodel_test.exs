@@ -47,6 +47,15 @@ defmodule RemodelTest do
     end
   end
 
+  defmodule TestSerializer8 do
+    use Remodel
+    attribute :field, as: :alias
+
+    def alias(record) do
+      record.name
+    end
+  end
+
   test "instance_root" do
     assert (%{foo: 1} |> TestSerializer.to_map(instance_root: :root)) == %{root: %{foo: 1}}
     assert ([%{foo: 1}] |> TestSerializer.to_map(instance_root: :root)) == [%{root: %{foo: 1}}]
@@ -88,5 +97,11 @@ defmodule RemodelTest do
   test "scope" do
     assert (%{id: 1} |> TestSerializer7.to_map(scope: %{id: 1})) == %{id: 1, mine: true}
     assert (%{id: 2} |> TestSerializer7.to_list(headers: true, scope: %{id: 1})) == [["id","mine"],[2,false]]
+  end
+
+  test "function as alias" do
+    assert (%{name: "alias", field: 1} |> TestSerializer8.to_map()) == %{"alias" => 1}
+    assert (%{name: :alias, field: 1} |> TestSerializer8.to_map()) == %{alias: 1}
+    assert (%{name: "alias", field: 2} |> TestSerializer8.to_list(headers: true)) == [["alias"],[2]]
   end
 end

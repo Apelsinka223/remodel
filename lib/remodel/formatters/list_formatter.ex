@@ -1,10 +1,10 @@
 defmodule Remodel.Formatter.ListFormatter do
 
   def format(resource, serializer, %{headers: true}=options) when is_list(resource),
-    do: [format_header(serializer) | format_resources(resource, serializer, %{headers: true}=options)]
+    do: [format_header(resource, serializer) | format_resources(resource, serializer, %{headers: true}=options)]
 
   def format(resource, serializer, %{headers: true}=options) when is_map(resource),
-    do: [format_header(serializer) | [format_resources(resource, serializer, options)]]
+    do: [format_header(resource, serializer) | [format_resources(resource, serializer, options)]]
 
   def format(resource, serializer, options),
     do: format_resources(resource, serializer, options)
@@ -22,6 +22,14 @@ defmodule Remodel.Formatter.ListFormatter do
     end
   end
 
-  defp format_header(serializer),
-    do: Enum.map(serializer.__attributes, fn(attr) -> to_string(attr.as || attr.attribute) end)
+  defp format_header(resource, serializer) do
+    Enum.map(serializer.__attributes, fn(attr) ->
+      alias =
+        if attr.as && is_atom(attr.as) && Keyword.has_key?(serializer.__info__(:functions), attr.as) do
+          apply(serializer, attr.as, [resource])
+        end
+
+      alias || to_string(attr.as || attr.attribute)
+    end)
+  end
 end
